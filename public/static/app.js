@@ -191,6 +191,12 @@ class ContentGenerator {
     }
 
     async generateAllContent() {
+        // 인증 확인
+        if (!authManager.isAuthenticated()) {
+            authManager.showLoginModal();
+            return;
+        }
+
         const productDescription = document.getElementById('productDescription').value.trim();
         
         if (!productDescription) {
@@ -221,9 +227,12 @@ class ContentGenerator {
 
             this.updateStatus('podcast', 'processing', '생성 중...');
 
-            const response = await axios.post('/api/generate-content', {
-                productDescription,
-                options
+            const response = await authManager.authenticatedRequest('/api/generate-content', {
+                method: 'POST',
+                data: {
+                    productDescription,
+                    options
+                }
             });
 
             if (response.data.success) {
@@ -241,11 +250,26 @@ class ContentGenerator {
         } catch (error) {
             console.error('Generation error:', error);
             this.updateAllStatus('error', '실패');
-            this.showAlert('콘텐츠 생성 중 오류가 발생했습니다: ' + error.message, 'error');
+            
+            if (error.response?.status === 402) {
+                this.showAlert('프리미엄 플랜이 필요한 기능입니다. 업그레이드를 고려해보세요.', 'warning');
+            } else if (error.response?.status === 429) {
+                this.showAlert('사용량 한도를 초과했습니다. 잠시 후 다시 시도하거나 플랜을 업그레이드하세요.', 'warning');
+            } else if (error.response?.status === 403) {
+                this.showAlert('접근 권한이 없습니다.', 'error');
+            } else {
+                this.showAlert('콘텐츠 생성 중 오류가 발생했습니다: ' + (error.response?.data?.error || error.message), 'error');
+            }
         }
     }
 
     async generateSingle(type) {
+        // 인증 확인
+        if (!authManager.isAuthenticated()) {
+            authManager.showLoginModal();
+            return;
+        }
+
         const productDescription = document.getElementById('productDescription').value.trim();
         
         if (!productDescription) {
@@ -287,14 +311,23 @@ class ContentGenerator {
                     break;
             }
 
-            const response = await axios.post(endpoint, data);
+            const response = await authManager.authenticatedRequest(endpoint, {
+                method: 'POST',
+                data: data
+            });
             
             if (response.data.success) {
                 this.showAlert(`${this.getTypeName(type)} 생성이 완료되었습니다!`, 'success');
                 this.displaySingleResult(type, response.data);
             }
         } catch (error) {
-            this.showAlert(`${this.getTypeName(type)} 생성 중 오류가 발생했습니다: ` + error.message, 'error');
+            if (error.response?.status === 402) {
+                this.showAlert(`${this.getTypeName(type)} 생성은 프리미엄 기능입니다. 업그레이드가 필요합니다.`, 'warning');
+            } else if (error.response?.status === 429) {
+                this.showAlert(`${this.getTypeName(type)} 월 사용량을 초과했습니다.`, 'warning');
+            } else {
+                this.showAlert(`${this.getTypeName(type)} 생성 중 오류가 발생했습니다: ` + (error.response?.data?.error || error.message), 'error');
+            }
         }
     }
 

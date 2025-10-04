@@ -3,6 +3,16 @@ import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { renderer } from './renderer'
 import { serverAICalls } from './server-ai-calls'
+import { authService, UserRole } from './auth-service'
+import { 
+  requireAuth, 
+  optionalAuth, 
+  securityHeaders, 
+  rateLimiter, 
+  requirePremium, 
+  checkUsageQuota,
+  apiLogger 
+} from './auth-middleware'
 
 // 실제 AI 생성 서비스 (GenSpark AI 도구들 사용)
 class ProductiveAIService {
@@ -344,12 +354,190 @@ const productiveAIService = new ProductiveAIService()
 const app = new Hono()
 
 // Middleware
+app.use('*', securityHeaders)
 app.use('*', cors())
 app.use('*', logger())
+app.use('/api/*', apiLogger)
+app.use('/api/*', rateLimiter.middleware())
 app.use(renderer)
 
-// API Routes
-app.post('/api/generate-content', async (c) => {
+// 인증 API Routes
+app.post('/api/auth/signup', rateLimiter.middleware(10), async (c) => {
+  try {
+    const { email, password, name, company, industry } = await c.req.json()
+    
+    if (!email || !password || !name) {
+      return c.json({ 
+        error: '이메일, 비밀번호, 이름은 필수 항목입니다.' 
+      }, 400)
+    }
+
+    const result = await authService.signup({
+      email,
+      password,
+      name,
+      company,
+      industry
+    })
+
+    if (result.success) {
+      console.log(`✅ New user signup: ${email}`)
+      return c.json(result, 201)
+    } else {
+      return c.json(result, 400)
+    }
+  } catch (error) {
+    console.error('Signup API error:', error)
+    return c.json({ 
+      error: '회원가입 처리 중 오류가 발생했습니다.' 
+    }, 500)
+  }
+})
+
+app.post('/api/auth/login', rateLimiter.middleware(20), async (c) => {
+  try {
+    const { email, password } = await c.req.json()
+    
+    if (!email || !password) {
+      return c.json({ 
+        error: '이메일과 비밀번호를 입력해주세요.' 
+      }, 400)
+    }
+
+    const result = await authService.login({ email, password })
+
+    if (result.success) {
+      console.log(`✅ User login: ${email}`)
+      return c.json(result)
+    } else {
+      return c.json(result, 401)
+    }
+  } catch (error) {
+    console.error('Login API error:', error)
+    return c.json({ 
+      error: '로그인 처리 중 오류가 발생했습니다.' 
+    }, 500)
+  }
+})
+
+app.post('/api/auth/refresh', async (c) => {
+  try {
+    const { refreshToken } = await c.req.json()
+    
+    if (!refreshToken) {
+      return c.json({ 
+        error: '리프레시 토큰이 필요합니다.' 
+      }, 400)
+    }
+
+    const result = await authService.refreshAccessToken(refreshToken)
+    return c.json(result, result.success ? 200 : 401)
+  } catch (error) {
+    console.error('Token refresh API error:', error)
+    return c.json({ 
+      error: '토큰 갱신 중 오류가 발생했습니다.' 
+    }, 500)
+  }
+})
+
+app.post('/api/auth/logout', requireAuth(), async (c) => {
+  try {
+    const { refreshToken } = await c.req.json()
+    const user = c.get('user')
+    
+    const result = await authService.logout(refreshToken || '')
+    console.log(`✅ User logout: ${user?.email}`)
+    
+    return c.json(result)
+  } catch (error) {
+    console.error('Logout API error:', error)
+    return c.json({ 
+      error: '로그아웃 처리 중 오류가 발생했습니다.' 
+    }, 500)
+  }
+})
+
+app.get('/api/auth/me', requireAuth(), async (c) => {
+  try {
+    const user = c.get('user')
+    return c.json({ 
+      success: true, 
+      user: {
+        id: user?.sub,
+        email: user?.email,
+        name: user?.name,
+        role: user?.role,
+        plan: user?.plan
+      }
+    })
+  } catch (error) {
+    console.error('Get user info API error:', error)
+    return c.json({ 
+      error: '사용자 정보 조회 중 오류가 발생했습니다.' 
+    }, 500)
+  }
+})
+
+// 관리자 전용 API
+app.get('/api/admin/users', requireAuth(UserRole.ADMIN), async (c) => {
+  try {
+    const user = c.get('user')
+    const result = await authService.getUsers(user?.role as UserRole)
+    return c.json(result, result.success ? 200 : 403)
+  } catch (error) {
+    console.error('Get users API error:', error)
+    return c.json({ 
+      error: '사용자 목록 조회 중 오류가 발생했습니다.' 
+    }, 500)
+  }
+})
+
+app.put('/api/admin/users/:userId/role', requireAuth(UserRole.ADMIN), async (c) => {
+  try {
+    const userId = c.req.param('userId')
+    const { role, plan } = await c.req.json()
+    const adminUser = c.get('user')
+    
+    if (!role || !plan) {
+      return c.json({ 
+        error: '역할과 플랜을 지정해주세요.' 
+      }, 400)
+    }
+
+    const result = await authService.updateUserRole(
+      userId, 
+      role, 
+      plan, 
+      adminUser?.role as UserRole
+    )
+    
+    return c.json(result, result.success ? 200 : 400)
+  } catch (error) {
+    console.error('Update user role API error:', error)
+    return c.json({ 
+      error: '사용자 권한 업데이트 중 오류가 발생했습니다.' 
+    }, 500)
+  }
+})
+
+app.get('/api/auth/stats', requireAuth(UserRole.ADMIN), async (c) => {
+  try {
+    const stats = authService.getStats()
+    return c.json({ 
+      success: true, 
+      stats,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('Get auth stats API error:', error)
+    return c.json({ 
+      error: '인증 통계 조회 중 오류가 발생했습니다.' 
+    }, 500)
+  }
+})
+
+// AI 콘텐츠 생성 API Routes (인증 및 쿼터 적용)
+app.post('/api/generate-content', requireAuth(), checkUsageQuota('content-generation'), async (c) => {
   const body = await c.req.json()
   const { productDescription, options = {} } = body
 
@@ -378,7 +566,7 @@ app.post('/api/generate-content', async (c) => {
 })
 
 // 개별 콘텐츠 타입별 API (실제 AI 서비스 사용)
-app.post('/api/generate-blog', async (c) => {
+app.post('/api/generate-blog', requireAuth(), checkUsageQuota('content-generation'), async (c) => {
   const { productDescription, options = {} } = await c.req.json()
   
   if (!productDescription) {
@@ -401,7 +589,7 @@ app.post('/api/generate-blog', async (c) => {
   }
 })
 
-app.post('/api/generate-image', async (c) => {
+app.post('/api/generate-image', requireAuth(), checkUsageQuota('image-generation'), async (c) => {
   const { productDescription, style = 'modern', options = {} } = await c.req.json()
   
   if (!productDescription) {
@@ -425,7 +613,7 @@ app.post('/api/generate-image', async (c) => {
   }
 })
 
-app.post('/api/generate-video', async (c) => {
+app.post('/api/generate-video', requireAuth(), requirePremium, checkUsageQuota('video-generation'), async (c) => {
   const { productDescription, duration = 30, options = {} } = await c.req.json()
   
   if (!productDescription) {
@@ -449,7 +637,7 @@ app.post('/api/generate-video', async (c) => {
   }
 })
 
-app.post('/api/generate-podcast', async (c) => {
+app.post('/api/generate-podcast', requireAuth(), checkUsageQuota('audio-generation'), async (c) => {
   const { productDescription, voice = 'professional', options = {} } = await c.req.json()
   
   if (!productDescription) {
