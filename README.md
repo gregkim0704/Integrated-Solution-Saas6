@@ -72,7 +72,7 @@
 
 ## 🌐 실제 배포 URL
 - **프로덕션**: https://3000-iy97ehumbpg1ba4kvmlcw-6532622b.e2b.dev
-- **GitHub**: https://github.com/gregkim0704/Integrated-Solution-Saas4
+- **GitHub**: https://github.com/gregkim0704/Integrated-Solution-Saas5
 
 ## 📊 데이터 아키텍처
 
