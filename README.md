@@ -83,7 +83,7 @@
 
 ## 🌐 실제 배포 URL
 - **프로덕션**: https://3000-igmdcnrp799jl835gum08-6532622b.e2b.dev
-- **GitHub**: https://github.com/gregkim0704/Integrated-Solution-Saas5
+- **GitHub**: https://github.com/gregkim0704/Integrated-Solution-Saas6
 - **Health Check**: https://3000-igmdcnrp799jl835gum08-6532622b.e2b.dev/api/health
 
 ## 📊 데이터 아키텍처
