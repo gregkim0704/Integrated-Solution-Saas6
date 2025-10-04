@@ -49,16 +49,29 @@ class ContentGenerator {
 
                 <!-- 제품 설명 입력 -->
                 <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">
-                        <i class="fas fa-edit mr-2"></i>
-                        제품 설명 입력
-                    </label>
-                    <textarea 
-                        id="productDescription" 
-                        class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                        rows="4"
-                        placeholder="예: 스마트 워치 - 건강 모니터링과 피트니스 추적을 위한 차세대 웨어러블 디바이스입니다. 심박수, 수면 패턴, 활동량을 실시간으로 추적하고 개인 맞춤형 건강 인사이트를 제공합니다..."
-                    ></textarea>
+                    <div class="input-container">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-edit mr-2"></i>
+                            제품 설명 입력
+                        </label>
+                        <textarea 
+                            id="productDescription" 
+                            name="productDescription"
+                            data-validate="string"
+                            required
+                            minlength="10"
+                            maxlength="5000"
+                            class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-colors"
+                            rows="4"
+                            placeholder="예: 스마트 워치 - 건강 모니터링과 피트니스 추적을 위한 차세대 웨어러블 디바이스입니다. 심박수, 수면 패턴, 활동량을 실시간으로 추적하고 개인 맞춤형 건강 인사이트를 제공합니다..."
+                        ></textarea>
+                        <div class="flex justify-between items-center mt-2">
+                            <div class="text-xs text-gray-500">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                최소 10자 이상, 3개 단어 이상 포함해주세요
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 생성 옵션 -->
@@ -197,11 +210,28 @@ class ContentGenerator {
             return;
         }
 
-        const productDescription = document.getElementById('productDescription').value.trim();
-        
-        if (!productDescription) {
-            this.showAlert('제품 설명을 입력해주세요.', 'error');
+        // 🛡️ 입력 검증 수행
+        const productDescriptionElement = document.getElementById('productDescription');
+        const validationResult = window.FrontendInputValidator.validateField(
+            productDescriptionElement.value,
+            window.FrontendValidationSchemas.contentGeneration.productDescription,
+            '제품 설명'
+        );
+
+        // 검증 실패 시 중단
+        if (!validationResult.isValid) {
+            window.ValidationUI.updateFieldStatus(productDescriptionElement, validationResult);
+            this.showAlert(validationResult.error, 'error');
+            productDescriptionElement.focus();
             return;
+        }
+
+        // 검증 성공 시 살균된 데이터 사용
+        const productDescription = validationResult.sanitizedValue;
+        
+        console.log('🛡️ Frontend validation passed for content generation');
+        if (validationResult.warning) {
+            console.warn('⚠️ Frontend validation warning:', validationResult.warning);
         }
 
         const options = {

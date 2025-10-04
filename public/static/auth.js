@@ -264,47 +264,64 @@ class AuthManager {
 
                         <!-- 로그인 폼 -->
                         <form id="loginForm" class="space-y-4">
-                            <div>
+                            <div class="input-container">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-                                <input type="email" id="loginEmail" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <input type="email" id="loginEmail" name="email" required
+                                    data-validate="email"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                             </div>
-                            <div>
+                            <div class="input-container">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-                                <input type="password" id="loginPassword" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <input type="password" id="loginPassword" name="password" required
+                                    data-validate="string"
+                                    minlength="1"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                             </div>
-                            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">
+                            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <i class="fas fa-sign-in-alt mr-2"></i>로그인
                             </button>
                         </form>
 
                         <!-- 회원가입 폼 -->
                         <form id="signupForm" class="space-y-4 hidden">
-                            <div>
+                            <div class="input-container">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">이름</label>
-                                <input type="text" id="signupName" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <input type="text" id="signupName" name="name" required
+                                    data-validate="string"
+                                    minlength="2" maxlength="100"
+                                    pattern="^[가-힣a-zA-Z\s]+$"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    placeholder="홍길동 또는 John Doe">
                             </div>
-                            <div>
+                            <div class="input-container">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-                                <input type="email" id="signupEmail" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <input type="email" id="signupEmail" name="email" required
+                                    data-validate="email"
+                                    maxlength="255"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    placeholder="example@company.com">
                             </div>
-                            <div>
+                            <div class="input-container">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-                                <input type="password" id="signupPassword" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                <input type="password" id="signupPassword" name="password" required
+                                    data-validate="password"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                     placeholder="8자 이상, 영문, 숫자, 특수문자 포함">
                             </div>
-                            <div>
+                            <div class="input-container">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">회사명 (선택)</label>
-                                <input type="text" id="signupCompany"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <input type="text" id="signupCompany" name="company"
+                                    data-validate="string"
+                                    maxlength="200"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    placeholder="회사명을 입력하세요">
                             </div>
-                            <div>
+                            <div class="input-container">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">업종 (선택)</label>
-                                <select id="signupIndustry" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <select id="signupIndustry" name="industry"
+                                    data-validate="string"
+                                    maxlength="100"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                                     <option value="">선택해주세요</option>
                                     <option value="consulting">컨설팅</option>
                                     <option value="finance">금융</option>
@@ -317,7 +334,7 @@ class AuthManager {
                                     <option value="other">기타</option>
                                 </select>
                             </div>
-                            <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500">
+                            <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <i class="fas fa-user-plus mr-2"></i>회원가입
                             </button>
                         </form>

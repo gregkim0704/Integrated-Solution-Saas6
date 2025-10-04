@@ -17,6 +17,12 @@ import { HistoryService } from './history-service'
 import { TemplateService } from './template-service'
 import { StartupValidator, setupProcessHandlers } from './config/startup'
 import { env } from './config/environment'
+import { 
+  createValidationMiddleware, 
+  ValidationSchemas, 
+  validateWithCache,
+  InputSanitizer 
+} from './utils/input-validator'
 
 // Cloudflare 바인딩 타입 정의
 type Bindings = {
@@ -376,63 +382,66 @@ app.use('/api/*', rateLimiter.middleware())
 app.use(renderer)
 
 // 인증 API Routes
-app.post('/api/auth/signup', rateLimiter.middleware(10), async (c) => {
-  try {
-    const { email, password, name, company, industry } = await c.req.json()
-    
-    if (!email || !password || !name) {
+app.post('/api/auth/signup', 
+  rateLimiter.middleware(10), 
+  createValidationMiddleware(ValidationSchemas.userSignup),
+  async (c) => {
+    try {
+      // 검증된 데이터 가져오기 (입력 검증 미들웨어에서 살균 완료)
+      const validatedData = c.get('validatedData')
+      const warnings = c.get('validationWarnings')
+      
+      console.log(`🛡️ Signup validation passed for: ${validatedData.email}`)
+      if (warnings && warnings.length > 0) {
+        console.warn('⚠️ Signup validation warnings:', warnings)
+      }
+
+      const result = await authService.signup(validatedData)
+
+      if (result.success) {
+        console.log(`✅ New user signup: ${validatedData.email}`)
+        return c.json({
+          ...result,
+          validationWarnings: warnings
+        }, 201)
+      } else {
+        return c.json(result, 400)
+      }
+    } catch (error) {
+      console.error('Signup API error:', error)
       return c.json({ 
-        error: '이메일, 비밀번호, 이름은 필수 항목입니다.' 
-      }, 400)
+        error: '회원가입 처리 중 오류가 발생했습니다.' 
+      }, 500)
     }
-
-    const result = await authService.signup({
-      email,
-      password,
-      name,
-      company,
-      industry
-    })
-
-    if (result.success) {
-      console.log(`✅ New user signup: ${email}`)
-      return c.json(result, 201)
-    } else {
-      return c.json(result, 400)
-    }
-  } catch (error) {
-    console.error('Signup API error:', error)
-    return c.json({ 
-      error: '회원가입 처리 중 오류가 발생했습니다.' 
-    }, 500)
   }
-})
+)
 
-app.post('/api/auth/login', rateLimiter.middleware(20), async (c) => {
-  try {
-    const { email, password } = await c.req.json()
-    
-    if (!email || !password) {
+app.post('/api/auth/login', 
+  rateLimiter.middleware(20),
+  createValidationMiddleware(ValidationSchemas.userLogin),
+  async (c) => {
+    try {
+      // 검증된 데이터 가져오기
+      const validatedData = c.get('validatedData')
+      
+      console.log(`🛡️ Login validation passed for: ${validatedData.email}`)
+
+      const result = await authService.login(validatedData)
+
+      if (result.success) {
+        console.log(`✅ User login: ${validatedData.email}`)
+        return c.json(result)
+      } else {
+        return c.json(result, 401)
+      }
+    } catch (error) {
+      console.error('Login API error:', error)
       return c.json({ 
-        error: '이메일과 비밀번호를 입력해주세요.' 
-      }, 400)
+        error: '로그인 처리 중 오류가 발생했습니다.' 
+      }, 500)
     }
-
-    const result = await authService.login({ email, password })
-
-    if (result.success) {
-      console.log(`✅ User login: ${email}`)
-      return c.json(result)
-    } else {
-      return c.json(result, 401)
-    }
-  } catch (error) {
-    console.error('Login API error:', error)
-    return c.json({ 
-      error: '로그인 처리 중 오류가 발생했습니다.' 
-    }, 500)
   }
-})
+)
 
 app.post('/api/auth/refresh', async (c) => {
   try {
@@ -551,20 +560,29 @@ app.get('/api/auth/stats', requireAuth(UserRole.ADMIN), async (c) => {
 })
 
 // AI 콘텐츠 생성 API Routes (인증 및 쿼터 적용)
-app.post('/api/generate-content', requireAuth(), checkUsageQuota('content-generation'), async (c) => {
-  const body = await c.req.json()
-  const { productDescription, options = {} } = body
-
-  if (!productDescription) {
-    return c.json({ error: '제품 설명을 입력해주세요.' }, 400)
-  }
-
-  try {
-    const env = c.env;
-    const user = c.get('user');
-    
-    // 실제 AI 서비스를 사용한 통합 콘텐츠 생성
-    const contentResults = await productiveAIService.generateAllContent(productDescription, options)
+app.post('/api/generate-content', 
+  requireAuth(), 
+  checkUsageQuota('content-generation'),
+  createValidationMiddleware(ValidationSchemas.contentGeneration),
+  async (c) => {
+    try {
+      const env = c.env;
+      const user = c.get('user');
+      
+      // 검증된 데이터 가져오기
+      const validatedData = c.get('validatedData')
+      const warnings = c.get('validationWarnings')
+      
+      console.log(`🛡️ Content generation validation passed for user: ${user?.email}`)
+      if (warnings && warnings.length > 0) {
+        console.warn('⚠️ Content generation warnings:', warnings)
+      }
+      
+      // 실제 AI 서비스를 사용한 통합 콘텐츠 생성
+      const contentResults = await productiveAIService.generateAllContent(
+        validatedData.productDescription, 
+        validatedData.options || {}
+      )
     
     // 히스토리 저장 (비동기, 실패해도 메인 응답에 영향 없음)
     if (env.DB) {
@@ -582,21 +600,23 @@ app.post('/api/generate-content', requireAuth(), checkUsageQuota('content-genera
         });
     }
     
-    return c.json({
-      success: true,
-      data: contentResults,
-      message: '모든 콘텐츠가 성공적으로 생성되었습니다.',
-      processingTime: contentResults.processingTime,
-      timestamp: new Date().toISOString()
-    })
-  } catch (error) {
-    console.error('Content generation error:', error)
-    return c.json({ 
-      error: '콘텐츠 생성 중 오류가 발생했습니다.',
-      details: error.message 
-    }, 500)
+      return c.json({
+        success: true,
+        data: contentResults,
+        message: '모든 콘텐츠가 성공적으로 생성되었습니다.',
+        processingTime: contentResults.processingTime,
+        timestamp: new Date().toISOString(),
+        validationWarnings: warnings
+      })
+    } catch (error) {
+      console.error('Content generation error:', error)
+      return c.json({ 
+        error: '콘텐츠 생성 중 오류가 발생했습니다.',
+        details: error.message 
+      }, 500)
+    }
   }
-})
+)
 
 // 개별 콘텐츠 타입별 API (실제 AI 서비스 사용)
 app.post('/api/generate-blog', requireAuth(), checkUsageQuota('content-generation'), async (c) => {

@@ -47,6 +47,10 @@ export const renderer = jsxRenderer(({ children }) => {
         
         {/* JavaScript Libraries */}
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+        
+        {/* 🛡️ Input Validation System */}
+        <script src="/static/input-validation.js"></script>
+        
         <script src="/static/auth.js"></script>
         <script src="/static/app.js"></script>
         <script src="/static/history.js"></script>
