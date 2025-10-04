@@ -148,3 +148,275 @@
 .tab-button.active {
     @apply text-blue-600 border-blue-600;
 }
+
+/* === 히스토리 관리 스타일 === */
+
+/* 히스토리 관리자 컨테이너 */
+.history-manager {
+    @apply space-y-6;
+}
+
+/* 통계 카드 레이아웃 */
+.stats-dashboard {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+}
+
+.stats-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow;
+}
+
+.stats-icon {
+    @apply w-12 h-12 rounded-full flex items-center justify-center text-xl mb-3 mx-auto;
+}
+
+.stats-content {
+    @apply text-center;
+}
+
+.stats-number {
+    @apply text-2xl font-bold text-gray-800 mb-1;
+}
+
+.stats-label {
+    @apply text-sm text-gray-600;
+}
+
+/* 필터 섹션 */
+.filters-section {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200;
+}
+
+/* 폼 요소 스타일 */
+.form-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm;
+}
+
+.form-select {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm;
+}
+
+/* 버튼 스타일 확장 */
+.btn-primary-sm {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors duration-200;
+}
+
+.btn-secondary-sm {
+    @apply bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors duration-200;
+}
+
+/* 상태 배지 */
+.status-success {
+    @apply bg-green-100 text-green-800;
+}
+
+.status-error {
+    @apply bg-red-100 text-red-800;
+}
+
+.status-warning {
+    @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-info {
+    @apply bg-blue-100 text-blue-800;
+}
+
+.status-default {
+    @apply bg-gray-100 text-gray-800;
+}
+
+/* 이력 테이블 */
+.history-list {
+    @apply space-y-4;
+}
+
+/* 페이지네이션 */
+.pagination-container {
+    @apply flex justify-center;
+}
+
+.pagination-btn {
+    @apply px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-colors;
+}
+
+.pagination-btn:first-child {
+    @apply rounded-l-md;
+}
+
+.pagination-btn:last-child {
+    @apply rounded-r-md;
+}
+
+.pagination-btn-active {
+    @apply bg-blue-600 text-white border-blue-600 hover:bg-blue-700;
+}
+
+.pagination-btn-disabled {
+    @apply text-gray-400 bg-gray-100 cursor-not-allowed hover:bg-gray-100 hover:text-gray-400;
+}
+
+.pagination-ellipsis {
+    @apply px-3 py-2 text-sm text-gray-500;
+}
+
+/* 모달 스타일 */
+.modal {
+    @apply fixed inset-0 z-50 overflow-y-auto;
+}
+
+.modal.hidden {
+    @apply hidden;
+}
+
+.modal-overlay {
+    @apply min-h-screen px-4 text-center;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-overlay::before {
+    content: '';
+    @apply inline-block h-screen align-middle;
+}
+
+.modal-content {
+    @apply inline-block w-full p-6 my-8 text-left align-middle bg-white rounded-lg shadow-xl transform transition-all;
+}
+
+.modal-header {
+    @apply flex items-center justify-between pb-4 border-b border-gray-200 mb-4;
+}
+
+.modal-close {
+    @apply text-gray-400 hover:text-gray-600 text-xl;
+}
+
+.modal-body {
+    @apply max-h-96 overflow-y-auto;
+}
+
+/* 모달이 열렸을 때 body 스크롤 방지 */
+body.modal-open {
+    @apply overflow-hidden;
+}
+
+/* 반응형 테이블 */
+@media (max-width: 768px) {
+    .history-table-responsive {
+        @apply block overflow-x-auto whitespace-nowrap;
+    }
+    
+    .stats-card {
+        @apply p-3;
+    }
+    
+    .stats-number {
+        @apply text-xl;
+    }
+}
+
+/* 로딩 및 빈 상태 */
+.empty-state {
+    @apply text-center py-12 px-6 text-gray-500;
+}
+
+.empty-state-icon {
+    @apply text-6xl mb-4 text-gray-300;
+}
+
+.loading-state {
+    @apply flex items-center justify-center py-8;
+}
+
+/* 히스토리 상세 콘텐츠 스타일 */
+.detail-section {
+    @apply mb-6 p-4 border border-gray-200 rounded-lg;
+}
+
+.detail-section h5 {
+    @apply font-semibold text-lg text-gray-800 mb-3 flex items-center;
+}
+
+.detail-field {
+    @apply mb-3;
+}
+
+.detail-field label {
+    @apply block text-sm font-medium text-gray-600 mb-1;
+}
+
+.detail-field p, .detail-field pre {
+    @apply text-sm text-gray-900;
+}
+
+.detail-field pre {
+    @apply bg-gray-50 p-2 rounded border overflow-auto;
+}
+
+/* 액션 버튼 그룹 */
+.action-buttons {
+    @apply flex space-x-2;
+}
+
+.action-btn {
+    @apply p-2 rounded-md transition-colors;
+}
+
+.action-btn:hover {
+    @apply bg-gray-100;
+}
+
+/* 애니메이션 */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* 검색 하이라이트 */
+.search-highlight {
+    @apply bg-yellow-200;
+}
+
+/* 타입별 콘텐츠 아이콘 색상 */
+.content-type-blog {
+    @apply text-green-600;
+}
+
+.content-type-image {
+    @apply text-purple-600;
+}
+
+.content-type-video {
+    @apply text-red-600;
+}
+
+.content-type-podcast {
+    @apply text-yellow-600;
+}
+
+.content-type-integrated {
+    @apply text-blue-600;
+}
+
+/* 탭 관리 스타일 */
+.tab-content {
+    @apply block;
+}
+
+.tab-content.hidden {
+    @apply hidden;
+}
+
+/* 계정 관리 스타일 */
+.account-manager {
+    @apply space-y-6;
+}

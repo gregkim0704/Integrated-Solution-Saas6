@@ -49,6 +49,8 @@ export const renderer = jsxRenderer(({ children }) => {
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script src="/static/auth.js"></script>
         <script src="/static/app.js"></script>
+        <script src="/static/history.js"></script>
+        <script src="/static/tab-manager.js"></script>
       </body>
     </html>
   )

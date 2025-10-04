@@ -13,6 +13,7 @@ import {
   checkUsageQuota,
   apiLogger 
 } from './auth-middleware'
+import { HistoryService } from './history-service'
 
 // 실제 AI 생성 서비스 (GenSpark AI 도구들 사용)
 class ProductiveAIService {
@@ -546,8 +547,26 @@ app.post('/api/generate-content', requireAuth(), checkUsageQuota('content-genera
   }
 
   try {
+    const { env, user } = c.var;
+    
     // 실제 AI 서비스를 사용한 통합 콘텐츠 생성
     const contentResults = await productiveAIService.generateAllContent(productDescription, options)
+    
+    // 히스토리 저장 (비동기, 실패해도 메인 응답에 영향 없음)
+    if (env.DB) {
+      const historyService = initializeHistoryService(env);
+      historyService.saveContentGeneration(user, contentResults, c.req.raw)
+        .then(result => {
+          if (result.success) {
+            console.log(`✅ History saved: ${result.historyId}`);
+          } else {
+            console.warn(`⚠️ History save failed: ${result.error}`);
+          }
+        })
+        .catch(error => {
+          console.error('❌ History save error:', error);
+        });
+    }
     
     return c.json({
       success: true,
@@ -574,7 +593,30 @@ app.post('/api/generate-blog', requireAuth(), checkUsageQuota('content-generatio
   }
   
   try {
+    const { env, user } = c.var;
+    
     const blogContent = await productiveAIService.generateBlogOnly(productDescription, options)
+    
+    // 개별 생성 히스토리 저장
+    if (env.DB) {
+      const historyService = initializeHistoryService(env);
+      historyService.saveIndividualGeneration(user, 'blog', {
+        productDescription,
+        options,
+        content: blogContent,
+        processingTime: blogContent.processingTime || 0,
+        realAI: false
+      }, c.req.raw)
+        .then(result => {
+          if (result.success) {
+            console.log(`✅ Blog history saved: ${result.historyId}`);
+          }
+        })
+        .catch(error => {
+          console.error('❌ Blog history save error:', error);
+        });
+    }
+    
     return c.json({ 
       success: true, 
       content: blogContent,
@@ -664,8 +706,50 @@ app.post('/api/generate-podcast', requireAuth(), checkUsageQuota('audio-generati
 // 메인 페이지
 app.get('/', (c) => {
   return c.render(
-    <div id="app">
-      {/* JavaScript가 UI를 렌더링합니다 */}
+    <div class="min-h-screen bg-gray-50">
+      {/* 탭 네비게이션 */}
+      <div class="bg-white border-b border-gray-200">
+        <div class="max-w-6xl mx-auto">
+          <div class="tab-nav">
+            <button id="generatorTab" class="tab-button active" onclick="switchTab('generator')">
+              <i class="fas fa-magic mr-2"></i>
+              콘텐츠 생성
+            </button>
+            <button id="historyTab" class="tab-button" onclick="switchTab('history')">
+              <i class="fas fa-history mr-2"></i>
+              생성 이력
+            </button>
+            <button id="accountTab" class="tab-button" onclick="switchTab('account')">
+              <i class="fas fa-user mr-2"></i>
+              계정 관리
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 콘텐츠 영역 */}
+      <div class="max-w-6xl mx-auto p-6">
+        {/* 콘텐츠 생성 탭 */}
+        <div id="generatorContent" class="tab-content">
+          <div id="app">
+            {/* JavaScript가 콘텐츠 생성 UI를 렌더링합니다 */}
+          </div>
+        </div>
+
+        {/* 히스토리 탭 */}
+        <div id="historyContent" class="tab-content hidden">
+          <div id="historyContainer">
+            {/* JavaScript가 히스토리 UI를 렌더링합니다 */}
+          </div>
+        </div>
+
+        {/* 계정 관리 탭 */}
+        <div id="accountContent" class="tab-content hidden">
+          <div id="accountContainer">
+            {/* JavaScript가 계정 관리 UI를 렌더링합니다 */}
+          </div>
+        </div>
+      </div>
     </div>
   )
 })
@@ -753,5 +837,161 @@ app.post('/api/ai-performance/reset', async (c) => {
     }, 500)
   }
 })
+
+// === 생성 이력 관리 API ===
+
+// 히스토리 서비스 초기화
+const initializeHistoryService = (env: any) => {
+  return new HistoryService(env.DB);
+};
+
+// 사용자 생성 이력 조회
+app.get('/api/history', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const historyService = initializeHistoryService(env);
+    
+    // 쿼리 파라미터 파싱
+    const url = new URL(c.req.url);
+    const filters = {
+      page: parseInt(url.searchParams.get('page') || '1'),
+      limit: parseInt(url.searchParams.get('limit') || '20'),
+      startDate: url.searchParams.get('startDate') || undefined,
+      endDate: url.searchParams.get('endDate') || undefined,
+      status: url.searchParams.get('status') || undefined,
+      contentType: url.searchParams.get('contentType') || undefined,
+      searchTerm: url.searchParams.get('searchTerm') || undefined
+    };
+
+    const result = await historyService.getUserHistory(user.sub, filters);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 500);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'History retrieved successfully'
+    });
+
+  } catch (error) {
+    console.error('History retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve history',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 사용자 통계 조회
+app.get('/api/history/stats', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const historyService = initializeHistoryService(env);
+    
+    const result = await historyService.getUserStats(user.sub);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 500);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Statistics retrieved successfully'
+    });
+
+  } catch (error) {
+    console.error('Stats retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve statistics',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 특정 생성 이력 조회
+app.get('/api/history/:id', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const historyService = initializeHistoryService(env);
+    const generationId = c.req.param('id');
+    
+    const result = await historyService.getGenerationById(generationId, user.sub);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 404);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      type: result.type,
+      message: 'Generation details retrieved successfully'
+    });
+
+  } catch (error) {
+    console.error('Generation retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve generation details',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 생성 이력 삭제
+app.delete('/api/history/:id', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const historyService = initializeHistoryService(env);
+    const generationId = c.req.param('id');
+    
+    const result = await historyService.deleteGeneration(generationId, user.sub);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 404);
+    }
+
+    return c.json({
+      success: true,
+      message: 'Generation deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Generation deletion error:', error);
+    return c.json({
+      error: 'Failed to delete generation',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 사용량 조회
+app.get('/api/usage', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const historyService = initializeHistoryService(env);
+    
+    const result = await historyService.getUserUsage(user.sub);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 500);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Usage data retrieved successfully'
+    });
+
+  } catch (error) {
+    console.error('Usage retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve usage data',
+      details: error.message
+    }, 500);
+  }
+});
 
 export default app
