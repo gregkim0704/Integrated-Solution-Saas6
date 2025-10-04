@@ -38,6 +38,12 @@ type Bindings = {
 // Hono 컨텍스트 타입 정의
 type Env = {
   Bindings: Bindings
+  Variables: {
+    dbManager?: any // DatabaseManager 인스턴스
+    user?: any // 사용자 정보
+    validatedData?: any // 검증된 데이터
+    validationWarnings?: string[] // 검증 경고
+  }
 }
 
 // 실제 AI 생성 서비스 (GenSpark AI 도구들 사용)
