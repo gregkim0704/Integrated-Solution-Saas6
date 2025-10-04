@@ -420,3 +420,219 @@ body.modal-open {
 .account-manager {
     @apply space-y-6;
 }
+
+/* === 템플릿 관리 스타일 === */
+
+/* 템플릿 매니저 컨테이너 */
+.template-manager {
+    @apply space-y-6;
+}
+
+/* 카테고리 탭 */
+.category-tab {
+    @apply px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200;
+    @apply text-gray-600 border-gray-200 bg-white hover:bg-gray-50;
+}
+
+.category-tab.active {
+    background-color: var(--category-color, #3b82f6);
+    @apply text-white border-transparent;
+}
+
+.category-tab:hover:not(.active) {
+    border-color: var(--category-color, #3b82f6);
+    color: var(--category-color, #3b82f6);
+}
+
+/* 템플릿 카드 */
+.template-card {
+    @apply transition-all duration-200 cursor-pointer;
+}
+
+.template-card:hover {
+    @apply transform -translate-y-1 shadow-lg;
+}
+
+/* 템플릿 타입 배지 */
+.template-type-badge {
+    @apply inline-block px-2 py-1 text-xs font-medium rounded;
+}
+
+.template-type-badge.blog {
+    @apply bg-green-100 text-green-800;
+}
+
+.template-type-badge.image {
+    @apply bg-purple-100 text-purple-800;
+}
+
+.template-type-badge.video {
+    @apply bg-red-100 text-red-800;
+}
+
+.template-type-badge.podcast {
+    @apply bg-yellow-100 text-yellow-800;
+}
+
+/* 템플릿 그리드 */
+.template-grid {
+    @apply min-h-96;
+}
+
+/* 템플릿 필터 */
+.template-filters {
+    @apply sticky top-4 z-10;
+}
+
+/* 라인 클램프 (텍스트 말줄임) */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* 템플릿 선택 모달 */
+.template-select-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto;
+}
+
+/* 템플릿 미리보기 */
+.template-preview {
+    @apply bg-gray-50 border border-gray-200 rounded p-3 text-sm;
+}
+
+.template-preview code {
+    @apply bg-gray-100 px-1 py-0.5 rounded text-xs font-mono;
+}
+
+/* 템플릿 에디터 */
+.template-editor {
+    @apply space-y-4;
+}
+
+.template-section {
+    @apply border border-gray-200 rounded-lg p-4 space-y-3;
+}
+
+.template-section h4 {
+    @apply font-semibold text-gray-800 flex items-center;
+}
+
+.template-section textarea {
+    @apply w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm;
+    min-height: 100px;
+}
+
+/* 템플릿 변수 힌트 */
+.template-variables {
+    @apply bg-blue-50 border border-blue-200 rounded p-3 text-sm;
+}
+
+.template-variables .variable {
+    @apply inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-mono mr-2 mb-1;
+}
+
+/* 템플릿 사용 통계 */
+.template-usage-chart {
+    @apply bg-white rounded-lg border border-gray-200 p-4;
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+    .template-grid {
+        @apply grid-cols-1;
+    }
+    
+    .category-tab {
+        @apply text-xs px-2 py-1;
+    }
+    
+    .template-card .btn-primary-sm,
+    .template-card .btn-secondary-sm {
+        @apply text-xs px-2 py-1;
+    }
+}
+
+/* 애니메이션 */
+@keyframes templateSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.template-card {
+    animation: templateSlideIn 0.3s ease-out;
+}
+
+/* 로딩 스피너 */
+.template-loading {
+    @apply flex items-center justify-center py-12;
+}
+
+.template-loading i {
+    @apply animate-spin text-3xl text-gray-400;
+}
+
+/* 즐겨찾기 하트 애니메이션 */
+.favorite-heart {
+    @apply transition-all duration-200;
+}
+
+.favorite-heart.active {
+    @apply text-red-500 transform scale-110;
+}
+
+.favorite-heart:hover {
+    @apply transform scale-125;
+}
+
+/* 템플릿 생성 폼 */
+.template-form {
+    @apply space-y-6 max-w-4xl mx-auto;
+}
+
+.template-form .form-group {
+    @apply space-y-2;
+}
+
+.template-form label {
+    @apply block text-sm font-medium text-gray-700;
+}
+
+.template-form input[type="text"],
+.template-form textarea,
+.template-form select {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+.template-form textarea {
+    @apply resize-vertical;
+    min-height: 120px;
+}
+
+/* 템플릿 카드 호버 효과 */
+.template-card-hover {
+    @apply relative overflow-hidden;
+}
+
+.template-card-hover::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent to-blue-50 opacity-0 transition-opacity duration-300;
+}
+
+.template-card-hover:hover::before {
+    @apply opacity-100;
+}

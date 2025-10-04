@@ -14,6 +14,7 @@ import {
   apiLogger 
 } from './auth-middleware'
 import { HistoryService } from './history-service'
+import { TemplateService } from './template-service'
 
 // 실제 AI 생성 서비스 (GenSpark AI 도구들 사용)
 class ProductiveAIService {
@@ -719,6 +720,10 @@ app.get('/', (c) => {
               <i class="fas fa-history mr-2"></i>
               생성 이력
             </button>
+            <button id="templatesTab" class="tab-button" onclick="switchTab('templates')">
+              <i class="fas fa-layer-group mr-2"></i>
+              템플릿
+            </button>
             <button id="accountTab" class="tab-button" onclick="switchTab('account')">
               <i class="fas fa-user mr-2"></i>
               계정 관리
@@ -740,6 +745,13 @@ app.get('/', (c) => {
         <div id="historyContent" class="tab-content hidden">
           <div id="historyContainer">
             {/* JavaScript가 히스토리 UI를 렌더링합니다 */}
+          </div>
+        </div>
+
+        {/* 템플릿 탭 */}
+        <div id="templatesContent" class="tab-content hidden">
+          <div id="templateContainer">
+            {/* JavaScript가 템플릿 UI를 렌더링합니다 */}
           </div>
         </div>
 
@@ -840,9 +852,13 @@ app.post('/api/ai-performance/reset', async (c) => {
 
 // === 생성 이력 관리 API ===
 
-// 히스토리 서비스 초기화
+// 서비스 초기화
 const initializeHistoryService = (env: any) => {
   return new HistoryService(env.DB);
+};
+
+const initializeTemplateService = (env: any) => {
+  return new TemplateService(env.DB);
 };
 
 // 사용자 생성 이력 조회
@@ -989,6 +1005,389 @@ app.get('/api/usage', requireAuth, async (c) => {
     console.error('Usage retrieval error:', error);
     return c.json({
       error: 'Failed to retrieve usage data',
+      details: error.message
+    }, 500);
+  }
+});
+
+// === 콘텐츠 템플릿 관리 API ===
+
+// 템플릿 카테고리 조회
+app.get('/api/templates/categories', optionalAuth, async (c) => {
+  try {
+    const { env } = c.var;
+    const templateService = initializeTemplateService(env);
+    
+    const type = c.req.query('type') as 'industry' | 'purpose' | undefined;
+    const result = await templateService.getCategories(type);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 500);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Categories retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Categories retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve categories',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 템플릿 목록 조회 (필터링 지원)
+app.get('/api/templates', optionalAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    
+    const url = new URL(c.req.url);
+    const filters = {
+      categoryId: url.searchParams.get('categoryId') || undefined,
+      type: url.searchParams.get('type') as 'industry' | 'purpose' | undefined,
+      isPublic: url.searchParams.get('isPublic') === 'true' ? true : undefined,
+      isSystem: url.searchParams.get('isSystem') === 'true' ? true : undefined,
+      creatorId: url.searchParams.get('creatorId') || undefined,
+      searchTerm: url.searchParams.get('searchTerm') || undefined,
+      sortBy: url.searchParams.get('sortBy') as 'name' | 'usage' | 'rating' | 'created' | 'updated' || undefined,
+      sortOrder: url.searchParams.get('sortOrder') as 'asc' | 'desc' || undefined,
+      page: parseInt(url.searchParams.get('page') || '1'),
+      limit: parseInt(url.searchParams.get('limit') || '20')
+    };
+
+    const result = await templateService.getTemplates(filters);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 500);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Templates retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Templates retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve templates',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 특정 템플릿 상세 조회
+app.get('/api/templates/:id', optionalAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    const templateId = c.req.param('id');
+    
+    const result = await templateService.getTemplateById(templateId, user?.sub);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, result.error === 'Template not found' ? 404 : 403);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Template details retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Template retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve template details',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 새 템플릿 생성 (인증 필요)
+app.post('/api/templates', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    const templateData = await c.req.json();
+    
+    const result = await templateService.createTemplate(user, templateData);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 400);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Template created successfully'
+    }, 201);
+  } catch (error) {
+    console.error('Template creation error:', error);
+    return c.json({
+      error: 'Failed to create template',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 템플릿 수정 (인증 필요)
+app.put('/api/templates/:id', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    const templateId = c.req.param('id');
+    const templateData = await c.req.json();
+    
+    const result = await templateService.updateTemplate(templateId, user, templateData);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, result.error === 'Access denied' ? 403 : 400);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Template updated successfully'
+    });
+  } catch (error) {
+    console.error('Template update error:', error);
+    return c.json({
+      error: 'Failed to update template',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 템플릿 삭제 (인증 필요)
+app.delete('/api/templates/:id', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    const templateId = c.req.param('id');
+    
+    const result = await templateService.deleteTemplate(templateId, user);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, result.error === 'Access denied' ? 403 : 404);
+    }
+
+    return c.json({
+      success: true,
+      message: 'Template deleted successfully'
+    });
+  } catch (error) {
+    console.error('Template deletion error:', error);
+    return c.json({
+      error: 'Failed to delete template',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 템플릿 사용 기록 (인증 필요)
+app.post('/api/templates/:id/use', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    const templateId = c.req.param('id');
+    const { generationId, customizations } = await c.req.json();
+    
+    const result = await templateService.recordTemplateUsage(
+      templateId, 
+      user, 
+      generationId, 
+      customizations
+    );
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 400);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Template usage recorded successfully'
+    });
+  } catch (error) {
+    console.error('Template usage recording error:', error);
+    return c.json({
+      error: 'Failed to record template usage',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 즐겨찾기 추가 (인증 필요)
+app.post('/api/templates/:id/favorite', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    const templateId = c.req.param('id');
+    
+    const result = await templateService.addToFavorites(templateId, user);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 400);
+    }
+
+    return c.json({
+      success: true,
+      message: 'Template added to favorites'
+    });
+  } catch (error) {
+    console.error('Add to favorites error:', error);
+    return c.json({
+      error: 'Failed to add to favorites',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 즐겨찾기 제거 (인증 필요)
+app.delete('/api/templates/:id/favorite', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    const templateId = c.req.param('id');
+    
+    const result = await templateService.removeFromFavorites(templateId, user);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 404);
+    }
+
+    return c.json({
+      success: true,
+      message: 'Template removed from favorites'
+    });
+  } catch (error) {
+    console.error('Remove from favorites error:', error);
+    return c.json({
+      error: 'Failed to remove from favorites',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 사용자 즐겨찾기 목록 조회 (인증 필요)
+app.get('/api/templates/favorites', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    
+    const result = await templateService.getUserFavorites(user);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 500);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Favorites retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Favorites retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve favorites',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 템플릿 통계 조회 (인증 필요)
+app.get('/api/templates/stats', requireAuth, async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    
+    const result = await templateService.getTemplateStats(user.sub);
+    
+    if (!result.success) {
+      return c.json({ error: result.error }, 500);
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      message: 'Template statistics retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Template stats retrieval error:', error);
+    return c.json({
+      error: 'Failed to retrieve template statistics',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 템플릿 적용하여 콘텐츠 생성 (인증 필요)
+app.post('/api/generate-with-template/:templateId', requireAuth(), checkUsageQuota('content-generation'), async (c) => {
+  try {
+    const { env, user } = c.var;
+    const templateService = initializeTemplateService(env);
+    const templateId = c.req.param('templateId');
+    const { productDescription, customizations = {} } = await c.req.json();
+
+    if (!productDescription) {
+      return c.json({ error: '제품 설명을 입력해주세요.' }, 400);
+    }
+
+    // 템플릿 조회
+    const templateResult = await templateService.getTemplateById(templateId, user.sub);
+    if (!templateResult.success) {
+      return c.json({ error: '템플릿을 찾을 수 없습니다.' }, 404);
+    }
+
+    const template = templateResult.data!;
+    
+    // 템플릿 기반 콘텐츠 생성 옵션 구성
+    const templateOptions = {
+      template: template,
+      customizations: customizations,
+      useTemplate: true
+    };
+
+    // 기존 AI 서비스로 콘텐츠 생성
+    const contentResults = await productiveAIService.generateAllContent(
+      productDescription, 
+      templateOptions
+    );
+    
+    // 템플릿 사용 기록
+    if (env.DB) {
+      templateService.recordTemplateUsage(templateId, user, contentResults.generationId, customizations)
+        .catch(error => console.error('❌ Template usage recording error:', error));
+      
+      // 히스토리 저장
+      const historyService = initializeHistoryService(env);
+      historyService.saveContentGeneration(user, {
+        ...contentResults,
+        templateId: templateId,
+        templateName: template.name
+      }, c.req.raw)
+        .catch(error => console.error('❌ History save error:', error));
+    }
+    
+    return c.json({
+      success: true,
+      data: contentResults,
+      template: {
+        id: template.id,
+        name: template.name,
+        category: template.category?.name
+      },
+      message: '템플릿 기반 콘텐츠가 성공적으로 생성되었습니다.',
+      processingTime: contentResults.processingTime,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Template-based generation error:', error);
+    return c.json({
+      error: '템플릿 기반 콘텐츠 생성 중 오류가 발생했습니다.',
       details: error.message
     }, 500);
   }

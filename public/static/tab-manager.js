@@ -9,7 +9,7 @@ class TabManager {
     init() {
         // URL 해시를 기반으로 초기 탭 설정
         const hash = window.location.hash.substring(1);
-        if (hash && ['generator', 'history', 'account'].includes(hash)) {
+        if (hash && ['generator', 'history', 'templates', 'account'].includes(hash)) {
             this.currentTab = hash;
         }
 
@@ -24,7 +24,7 @@ class TabManager {
         // 브라우저 뒤로가기/앞으로가기 처리
         window.addEventListener('popstate', (event) => {
             const hash = window.location.hash.substring(1);
-            if (hash && ['generator', 'history', 'account'].includes(hash)) {
+            if (hash && ['generator', 'history', 'templates', 'account'].includes(hash)) {
                 this.showTab(hash, false); // URL 업데이트 없이 탭만 변경
             }
         });
@@ -43,6 +43,10 @@ class TabManager {
                         break;
                     case '3':
                         event.preventDefault();
+                        this.switchTab('templates');
+                        break;
+                    case '4':
+                        event.preventDefault();
                         this.switchTab('account');
                         break;
                 }
@@ -53,7 +57,7 @@ class TabManager {
     switchTab(tabName, updateURL = true) {
         if (tabName === this.currentTab) return;
 
-        // 인증이 필요한 탭 체크
+        // 인증이 필요한 탭 체크 (템플릿은 인증 없이도 조회 가능)
         if ((tabName === 'history' || tabName === 'account') && !isAuthenticated()) {
             showNotification('로그인이 필요한 기능입니다.', 'warning');
             showAuthModal();
@@ -109,6 +113,13 @@ class TabManager {
                 // 히스토리 매니저 초기화
                 if (!window.historyManager) {
                     window.historyManager = new HistoryManager();
+                }
+                break;
+                
+            case 'templates':
+                // 템플릿 매니저 초기화
+                if (!window.templateManager) {
+                    window.templateManager = new TemplateManager();
                 }
                 break;
                 

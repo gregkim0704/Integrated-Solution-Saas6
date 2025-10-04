@@ -50,6 +50,7 @@ export const renderer = jsxRenderer(({ children }) => {
         <script src="/static/auth.js"></script>
         <script src="/static/app.js"></script>
         <script src="/static/history.js"></script>
+        <script src="/static/templates.js"></script>
         <script src="/static/tab-manager.js"></script>
       </body>
     </html>
