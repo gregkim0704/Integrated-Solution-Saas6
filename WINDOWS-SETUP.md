@@ -147,6 +147,20 @@ npm run deploy:prod
 2. **Email**: infrastructure@kakao.com
 3. **Phone**: 010-9143-0800
 
+### 🚀 초간편 실행 방법
+
+#### **방법 1: 자동 설정 스크립트 (권장)**
+```powershell
+# PowerShell에서 실행
+.\scripts\setup-windows.ps1
+```
+모든 설정을 자동으로 처리하고 서버까지 시작합니다.
+
+#### **방법 2: 배치 파일 (가장 쉬움)**
+1. `scripts\start-server.bat` 파일을 **더블클릭**
+2. 자동으로 설치하고 서버 시작
+3. 브라우저에서 http://localhost:3000 접속
+
 ### 💡 팁
 
 - **Windows Terminal** 사용 권장 (PowerShell 7+)
@@ -154,6 +168,12 @@ npm run deploy:prod
 - **Node.js** 18 LTS 버전 사용 권장
 - **관리자 권한**으로 실행하지 말 것 (보안상 위험)
 
+### 📁 추가된 편의 스크립트
+
+- `scripts/setup-windows.ps1` - 전체 자동 설정
+- `scripts/start-server.bat` - 더블클릭으로 서버 시작
+- `.env.example` - 환경 변수 템플릿
+
 ---
 
-**🎉 Windows에서도 8초만에 4가지 AI 콘텐츠가 생성됩니다!**
+**🎉 이제 Windows에서 클릭 한 번으로 8초만에 4가지 AI 콘텐츠 생성!**

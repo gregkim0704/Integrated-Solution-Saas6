@@ -158,7 +158,10 @@ npm run dev:local
 npm start
 ```
 
-**Windows 사용자**: 자세한 설정 가이드는 [WINDOWS-SETUP.md](./WINDOWS-SETUP.md) 참조
+**Windows 사용자**: 
+- 📋 자세한 설정: [WINDOWS-SETUP.md](./WINDOWS-SETUP.md)
+- 🚀 자동 설정: `.\scripts\setup-windows.ps1` (PowerShell)
+- 📱 간편 실행: `scripts\start-server.bat` (더블클릭)
 
 ## 🎨 현재 구현된 기능
 
