@@ -334,7 +334,7 @@ class TemplateManager {
 
     async loadStats() {
         try {
-            if (!isAuthenticated()) return;
+            if (!authManager.isAuthenticated()) return;
 
             const response = await authenticatedFetch('/api/templates/stats');
             
@@ -353,7 +353,7 @@ class TemplateManager {
 
     renderStats(stats) {
         const container = document.getElementById('templateStats');
-        if (!container || !isAuthenticated()) return;
+        if (!container || !authManager.isAuthenticated()) return;
 
         container.innerHTML = `
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -543,7 +543,7 @@ class TemplateManager {
     }
 
     showMyTemplates() {
-        if (!isAuthenticated()) {
+        if (!authManager.isAuthenticated()) {
             showNotification('로그인이 필요한 기능입니다.', 'warning');
             showAuthModal();
             return;
@@ -556,7 +556,7 @@ class TemplateManager {
     }
 
     async showFavorites() {
-        if (!isAuthenticated()) {
+        if (!authManager.isAuthenticated()) {
             showNotification('로그인이 필요한 기능입니다.', 'warning');
             showAuthModal();
             return;
@@ -718,7 +718,7 @@ class TemplateManager {
     }
 
     async toggleFavorite(templateId) {
-        if (!isAuthenticated()) {
+        if (!authManager.isAuthenticated()) {
             showNotification('로그인이 필요한 기능입니다.', 'warning');
             showAuthModal();
             return;

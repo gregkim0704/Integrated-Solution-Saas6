@@ -16,6 +16,16 @@ import {
 import { HistoryService } from './history-service'
 import { TemplateService } from './template-service'
 
+// Cloudflare 바인딩 타입 정의
+type Bindings = {
+  DB: D1Database
+}
+
+// Hono 컨텍스트 타입 정의
+type Env = {
+  Bindings: Bindings
+}
+
 // 실제 AI 생성 서비스 (GenSpark AI 도구들 사용)
 class ProductiveAIService {
   private performanceStats = {
@@ -353,7 +363,7 @@ ${productDescription}은 단순한 제품을 넘어 라이프스타일 혁신을
 
 const productiveAIService = new ProductiveAIService()
 
-const app = new Hono()
+const app = new Hono<Env>()
 
 // Middleware
 app.use('*', securityHeaders)
@@ -548,7 +558,8 @@ app.post('/api/generate-content', requireAuth(), checkUsageQuota('content-genera
   }
 
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     
     // 실제 AI 서비스를 사용한 통합 콘텐츠 생성
     const contentResults = await productiveAIService.generateAllContent(productDescription, options)
@@ -594,7 +605,8 @@ app.post('/api/generate-blog', requireAuth(), checkUsageQuota('content-generatio
   }
   
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     
     const blogContent = await productiveAIService.generateBlogOnly(productDescription, options)
     
@@ -853,18 +865,19 @@ app.post('/api/ai-performance/reset', async (c) => {
 // === 생성 이력 관리 API ===
 
 // 서비스 초기화
-const initializeHistoryService = (env: any) => {
+const initializeHistoryService = (env: Bindings) => {
   return new HistoryService(env.DB);
 };
 
-const initializeTemplateService = (env: any) => {
+const initializeTemplateService = (env: Bindings) => {
   return new TemplateService(env.DB);
 };
 
 // 사용자 생성 이력 조회
 app.get('/api/history', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const historyService = initializeHistoryService(env);
     
     // 쿼리 파라미터 파싱
@@ -903,7 +916,8 @@ app.get('/api/history', requireAuth, async (c) => {
 // 사용자 통계 조회
 app.get('/api/history/stats', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const historyService = initializeHistoryService(env);
     
     const result = await historyService.getUserStats(user.sub);
@@ -930,7 +944,8 @@ app.get('/api/history/stats', requireAuth, async (c) => {
 // 특정 생성 이력 조회
 app.get('/api/history/:id', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const historyService = initializeHistoryService(env);
     const generationId = c.req.param('id');
     
@@ -959,7 +974,8 @@ app.get('/api/history/:id', requireAuth, async (c) => {
 // 생성 이력 삭제
 app.delete('/api/history/:id', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const historyService = initializeHistoryService(env);
     const generationId = c.req.param('id');
     
@@ -986,7 +1002,8 @@ app.delete('/api/history/:id', requireAuth, async (c) => {
 // 사용량 조회
 app.get('/api/usage', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const historyService = initializeHistoryService(env);
     
     const result = await historyService.getUserUsage(user.sub);
@@ -1015,7 +1032,7 @@ app.get('/api/usage', requireAuth, async (c) => {
 // 템플릿 카테고리 조회
 app.get('/api/templates/categories', optionalAuth, async (c) => {
   try {
-    const { env } = c.var;
+    const env = c.env;
     const templateService = initializeTemplateService(env);
     
     const type = c.req.query('type') as 'industry' | 'purpose' | undefined;
@@ -1039,10 +1056,34 @@ app.get('/api/templates/categories', optionalAuth, async (c) => {
   }
 });
 
+// 카테고리별 템플릿 조회
+app.get('/api/templates/by-category/:categoryId', optionalAuth, async (c) => {
+  try {
+    const env = c.env;
+    const templateService = initializeTemplateService(env);
+    const categoryId = c.req.param('categoryId');
+    
+    const templates = await templateService.getTemplates({ categoryId });
+    return c.json({
+      success: true,
+      data: templates.data,
+      message: `Templates for category ${categoryId} retrieved successfully`
+    });
+  } catch (error) {
+    console.error('Error retrieving templates by category:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to retrieve templates by category',
+      details: error.message
+    }, 500);
+  }
+});
+
 // 템플릿 목록 조회 (필터링 지원)
 app.get('/api/templates', optionalAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     
     const url = new URL(c.req.url);
@@ -1082,7 +1123,8 @@ app.get('/api/templates', optionalAuth, async (c) => {
 // 특정 템플릿 상세 조회
 app.get('/api/templates/:id', optionalAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     const templateId = c.req.param('id');
     
@@ -1109,7 +1151,8 @@ app.get('/api/templates/:id', optionalAuth, async (c) => {
 // 새 템플릿 생성 (인증 필요)
 app.post('/api/templates', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     const templateData = await c.req.json();
     
@@ -1136,7 +1179,8 @@ app.post('/api/templates', requireAuth, async (c) => {
 // 템플릿 수정 (인증 필요)
 app.put('/api/templates/:id', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     const templateId = c.req.param('id');
     const templateData = await c.req.json();
@@ -1164,7 +1208,8 @@ app.put('/api/templates/:id', requireAuth, async (c) => {
 // 템플릿 삭제 (인증 필요)
 app.delete('/api/templates/:id', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     const templateId = c.req.param('id');
     
@@ -1190,7 +1235,8 @@ app.delete('/api/templates/:id', requireAuth, async (c) => {
 // 템플릿 사용 기록 (인증 필요)
 app.post('/api/templates/:id/use', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     const templateId = c.req.param('id');
     const { generationId, customizations } = await c.req.json();
@@ -1223,7 +1269,8 @@ app.post('/api/templates/:id/use', requireAuth, async (c) => {
 // 즐겨찾기 추가 (인증 필요)
 app.post('/api/templates/:id/favorite', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     const templateId = c.req.param('id');
     
@@ -1249,7 +1296,8 @@ app.post('/api/templates/:id/favorite', requireAuth, async (c) => {
 // 즐겨찾기 제거 (인증 필요)
 app.delete('/api/templates/:id/favorite', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     const templateId = c.req.param('id');
     
@@ -1275,7 +1323,8 @@ app.delete('/api/templates/:id/favorite', requireAuth, async (c) => {
 // 사용자 즐겨찾기 목록 조회 (인증 필요)
 app.get('/api/templates/favorites', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     
     const result = await templateService.getUserFavorites(user);
@@ -1301,7 +1350,8 @@ app.get('/api/templates/favorites', requireAuth, async (c) => {
 // 템플릿 통계 조회 (인증 필요)
 app.get('/api/templates/stats', requireAuth, async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     
     const result = await templateService.getTemplateStats(user.sub);
@@ -1327,7 +1377,8 @@ app.get('/api/templates/stats', requireAuth, async (c) => {
 // 템플릿 적용하여 콘텐츠 생성 (인증 필요)
 app.post('/api/generate-with-template/:templateId', requireAuth(), checkUsageQuota('content-generation'), async (c) => {
   try {
-    const { env, user } = c.var;
+    const env = c.env;
+    const user = c.get('user');
     const templateService = initializeTemplateService(env);
     const templateId = c.req.param('templateId');
     const { productDescription, customizations = {} } = await c.req.json();

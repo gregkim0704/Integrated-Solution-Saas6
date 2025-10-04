@@ -556,3 +556,56 @@ class AuthManager {
 
 // 전역 AuthManager 인스턴스 생성
 const authManager = new AuthManager();
+
+// 인증된 fetch 래퍼 함수
+async function authenticatedFetch(url, options = {}) {
+    // 기본 옵션 설정
+    const defaultOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+
+    // 인증 헤더 추가
+    if (authManager.isAuthenticated()) {
+        defaultOptions.headers.Authorization = `Bearer ${authManager.accessToken}`;
+    }
+
+    // 옵션 병합
+    const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...options.headers
+        }
+    };
+
+    try {
+        const response = await fetch(url, mergedOptions);
+        
+        // 401 에러 시 토큰 갱신 시도
+        if (response.status === 401 && authManager.refreshToken) {
+            const refreshResult = await authManager.refreshAccessToken();
+            if (refreshResult.success) {
+                // 토큰 갱신 후 재요청
+                mergedOptions.headers.Authorization = `Bearer ${authManager.accessToken}`;
+                const retryResponse = await fetch(url, mergedOptions);
+                return retryResponse;
+            } else {
+                // 토큰 갱신 실패 시 로그아웃
+                authManager.logout();
+                throw new Error('Authentication failed');
+            }
+        }
+
+        return response;
+    } catch (error) {
+        console.error('Authenticated fetch error:', error);
+        throw error;
+    }
+}
+
+// 전역 함수로 내보내기
+window.authenticatedFetch = authenticatedFetch;
