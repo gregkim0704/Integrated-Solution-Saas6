@@ -5,30 +5,28 @@
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  
+  // D1 데이터베이스 설정 (생성 이력 및 사용자 관리)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "webapp-production",
+      "database_id": "placeholder-will-be-set-after-creation"
+    }
   ]
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
+  
+  // 향후 확장을 위한 설정들
   // "kv_namespaces": [
   //   {
-  //     "binding": "MY_KV_NAMESPACE",
+  //     "binding": "CACHE",
   //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   //   }
   // ],
   // "r2_buckets": [
   //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
+  //     "binding": "STORAGE",
+  //     "bucket_name": "webapp-storage"
   //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
-  // "ai": {
-  //   "binding": "AI"
-  // }
+  // ]
 }
