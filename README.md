@@ -136,12 +136,29 @@ curl -X POST https://3000-ii2r9cghlz8eugsdrd3il-6532622b.e2b.dev/api/generate-co
 - **마지막 업데이트**: 2025-10-04
 
 ### 🔧 로컬 개발
+
+#### Linux/Mac 환경
 ```bash
 # 프로젝트 클론 후
 npm install
 npm run build
 npm run dev:sandbox  # 샌드박스 환경
 ```
+
+#### Windows 환경
+```powershell
+# 의존성 충돌 해결
+npm install --legacy-peer-deps
+
+# 빌드 및 실행
+npm run build
+npm run dev:local
+
+# 또는 한 번에 실행
+npm start
+```
+
+**Windows 사용자**: 자세한 설정 가이드는 [WINDOWS-SETUP.md](./WINDOWS-SETUP.md) 참조
 
 ## 🎨 현재 구현된 기능
 
