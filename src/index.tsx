@@ -131,4 +131,45 @@ app.get('/api/stats', (c) => {
   })
 })
 
+// AI 성능 모니터링 API
+app.get('/api/ai-performance', async (c) => {
+  try {
+    const { checkAIToolsAvailability, AIPerformanceMonitor } = await import('./real-ai-integration');
+    
+    const availability = checkAIToolsAvailability();
+    const performance = AIPerformanceMonitor.getStats();
+    
+    return c.json({
+      availability,
+      performance,
+      status: 'monitoring_active',
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({
+      error: 'Performance monitoring unavailable',
+      details: error.message
+    }, 500);
+  }
+})
+
+// AI 성능 리셋 API (개발용)
+app.post('/api/ai-performance/reset', async (c) => {
+  try {
+    const { AIPerformanceMonitor } = await import('./real-ai-integration');
+    AIPerformanceMonitor.reset();
+    
+    return c.json({
+      success: true,
+      message: 'AI performance metrics reset',
+      resetAt: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({
+      error: 'Reset failed',
+      details: error.message
+    }, 500);
+  }
+})
+
 export default app
