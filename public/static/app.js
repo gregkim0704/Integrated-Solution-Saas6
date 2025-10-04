@@ -98,6 +98,7 @@ class ContentGenerator {
                             <select id="language" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                                 <option value="ko">한국어</option>
                                 <option value="en">English</option>
+                                <option value="ja">日本語</option>
                             </select>
                         </div>
                     </div>
@@ -230,7 +231,10 @@ class ContentGenerator {
                 this.updateAllStatus('completed', '완료');
                 this.updateProgress(100);
                 this.displayResults(this.results);
-                this.showAlert('모든 콘텐츠가 성공적으로 생성되었습니다!', 'success');
+                
+                // 처리 시간 표시
+                const processingTime = Math.round(response.data.processingTime / 1000 * 100) / 100;
+                this.showAlert(`모든 콘텐츠가 성공적으로 생성되었습니다! (처리 시간: ${processingTime}초)`, 'success');
             } else {
                 throw new Error(response.data.error);
             }
@@ -253,21 +257,33 @@ class ContentGenerator {
             let endpoint = '';
             let data = { productDescription };
 
+            // 모든 옵션을 포함하도록 업데이트
+            const options = {
+                imageStyle: document.getElementById('imageStyle').value,
+                videoDuration: parseInt(document.getElementById('videoDuration').value),
+                voice: document.getElementById('voiceType').value,
+                language: document.getElementById('language').value
+            };
+
             switch (type) {
                 case 'blog':
                     endpoint = '/api/generate-blog';
+                    data.options = options;
                     break;
                 case 'image':
                     endpoint = '/api/generate-image';
-                    data.style = document.getElementById('imageStyle').value;
+                    data.style = options.imageStyle;
+                    data.options = options;
                     break;
                 case 'video':
                     endpoint = '/api/generate-video';
-                    data.duration = parseInt(document.getElementById('videoDuration').value);
+                    data.duration = options.videoDuration;
+                    data.options = options;
                     break;
                 case 'podcast':
                     endpoint = '/api/generate-podcast';
-                    data.voice = document.getElementById('voiceType').value;
+                    data.voice = options.voice;
+                    data.options = options;
                     break;
             }
 
