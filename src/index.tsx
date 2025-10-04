@@ -15,6 +15,8 @@ import {
 } from './auth-middleware'
 import { HistoryService } from './history-service'
 import { TemplateService } from './template-service'
+import { StartupValidator, setupProcessHandlers } from './config/startup'
+import { env } from './config/environment'
 
 // Cloudflare 바인딩 타입 정의
 type Bindings = {
@@ -1442,6 +1444,53 @@ app.post('/api/generate-with-template/:templateId', requireAuth(), checkUsageQuo
       details: error.message
     }, 500);
   }
+});
+
+// 환경변수 및 시스템 초기화
+async function initializeApplication() {
+  try {
+    console.log('🚀 Starting AI Content Generator Application...');
+    
+    // 프로세스 핸들러 설정
+    setupProcessHandlers();
+    
+    // 환경변수 검증 및 초기화
+    const startupResult = await StartupValidator.validateAndInitialize();
+    
+    if (!startupResult.success) {
+      console.error('❌ Application startup failed:', startupResult.errors);
+      
+      // 개발 환경에서는 에러를 표시하고 계속 진행
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🔄 Development mode: continuing with errors...');
+      } else {
+        throw new Error(`Startup validation failed: ${startupResult.errors.join(', ')}`);
+      }
+    } else {
+      console.log('✅ Application initialized successfully');
+      
+      // AuthService에 환경변수에서 로드한 JWT 시크릿 전달
+      if (startupResult.config) {
+        authService.updateJwtSecret(startupResult.config.JWT_SECRET);
+        console.log('🔑 AuthService updated with environment configuration');
+      }
+    }
+    
+  } catch (error) {
+    console.error('💥 Critical initialization error:', error);
+    
+    // 개발 환경에서는 기본 설정으로 계속 진행
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('🔄 Development mode: using fallback configuration...');
+    } else {
+      throw error;
+    }
+  }
+}
+
+// 애플리케이션 초기화 실행 (비동기)
+initializeApplication().catch(error => {
+  console.error('💥 Failed to initialize application:', error);
 });
 
 export default app

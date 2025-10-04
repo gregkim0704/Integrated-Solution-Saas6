@@ -448,7 +448,7 @@ ${productDescription}は単なる製品ではなく、ライフスタイル革�
 
     } catch (error) {
       console.error('❌ Real AI content generation failed:', error);
-      throw new Error(`실제 AI 콘텐츠 생성 실패: ${error.message}`);
+      throw new Error(`실제 AI 콘텐츠 생성 실패: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

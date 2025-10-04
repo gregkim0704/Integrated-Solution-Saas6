@@ -2,6 +2,7 @@
 // D1 데이터베이스를 사용한 사용자별 콘텐츠 생성 이력 관리
 
 import type { AuthTokenPayload } from './auth-service'
+import { getErrorMessage } from './utils/error-handler';
 
 // 타입 정의
 export interface ContentGenerationHistory {
@@ -169,7 +170,7 @@ export class HistoryService {
 
     } catch (error) {
       console.error('❌ Failed to save content generation history:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -207,7 +208,7 @@ export class HistoryService {
 
     } catch (error) {
       console.error('❌ Failed to save individual generation history:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -298,7 +299,7 @@ export class HistoryService {
 
     } catch (error) {
       console.error('❌ Failed to get user history:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -401,7 +402,7 @@ export class HistoryService {
 
     } catch (error) {
       console.error('❌ Failed to get user stats:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -463,7 +464,7 @@ export class HistoryService {
       };
     } catch (error) {
       console.error('❌ Failed to get user usage:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -520,7 +521,7 @@ export class HistoryService {
 
     } catch (error) {
       console.error('❌ Failed to get generation:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -558,7 +559,7 @@ export class HistoryService {
 
     } catch (error) {
       console.error('❌ Failed to delete generation:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 

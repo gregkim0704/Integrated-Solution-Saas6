@@ -38,6 +38,7 @@ export interface AuthTokenPayload {
   plan: string;
   iat: number;
   exp: number;
+  [key: string]: any; // JWT 호환성을 위한 인덱스 시그니처
 }
 
 // 로그인 요청
@@ -81,76 +82,90 @@ export class AuthService {
   private readonly LOCKOUT_DURATION = 15 * 60 * 1000; // 15분
 
   constructor(jwtSecret?: string) {
-    // 환경변수에서 JWT 시크릿 로드
-    this.jwtSecret = jwtSecret || process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
-    
-    // 프로덕션에서 기본값 사용 시 경고
-    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-super-secret-jwt-key-change-in-production') {
-      console.warn('⚠️  [보안 경고] JWT_SECRET이 기본값을 사용 중입니다. .env 파일에서 강력한 비밀키를 설정하세요.');
-    }
+    // 환경변수 시스템에서 JWT 시크릿 로드
+    this.jwtSecret = jwtSecret || 'temporary-key-will-be-replaced-by-env-system';
     
     console.log('🔐 AuthService initialized');
     
-    // 테스트 사용자 생성
+    // 테스트 사용자 생성 (환경변수에서 로드)
     this.createTestUsers();
+  }
+  
+  /**
+   * 환경변수 시스템에서 JWT 시크릿 업데이트
+   */
+  public updateJwtSecret(jwtSecret: string): void {
+    this.jwtSecret = jwtSecret;
+    console.log('🔑 JWT secret updated from environment system');
   }
 
   // 테스트 사용자 생성 (환경변수 기반)
   private async createTestUsers() {
-    // 환경변수에서 안전하게 테스트 계정 정보 로드
-    const testUsers = [
-      {
-        email: process.env.TEST_ADMIN_EMAIL || 'admin@infrastructure-research.com',
-        password: process.env.TEST_ADMIN_PASSWORD || 'change-this-password',
-        name: '관리자',
-        role: UserRole.ADMIN,
-        plan: 'enterprise' as const,
-        company: '한국인프라연구원(주)'
-      },
-      {
-        email: process.env.TEST_PREMIUM_EMAIL || 'premium@example.com',
-        password: process.env.TEST_PREMIUM_PASSWORD || 'change-this-password',
-        name: '프리미엄 사용자',
-        role: UserRole.PREMIUM,
-        plan: 'premium' as const,
-        company: '프리미엄 컨설팅'
-      },
-      {
-        email: process.env.TEST_USER_EMAIL || 'user@example.com',
-        password: process.env.TEST_USER_PASSWORD || 'change-this-password',
-        name: '일반 사용자',
-        role: UserRole.USER,
-        plan: 'free' as const
-      }
-    ];
-
-    // 개발 환경에서만 기본값 경고
-    if (!process.env.TEST_ADMIN_PASSWORD || process.env.TEST_ADMIN_PASSWORD === 'change-this-password') {
-      console.warn('⚠️  [보안 경고] 테스트 계정이 기본값을 사용 중입니다. .env 파일에서 TEST_*_PASSWORD를 설정하세요.');
-    }
-
-    for (const userData of testUsers) {
-      const passwordHash = await this.hashPassword(userData.password);
-      const user: User & { passwordHash: string } = {
-        id: this.generateUserId(),
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        plan: userData.plan,
-        createdAt: new Date().toISOString(),
-        isActive: true,
-        passwordHash,
-        metadata: {
-          company: userData.company,
-          preferredLanguage: 'ko',
-          timezone: 'Asia/Seoul'
+    try {
+      // 환경변수에서 안전하게 테스트 계정 정보 로드
+      const testUsers = [
+        {
+          email: process.env.TEST_ADMIN_EMAIL || 'admin@infrastructure-research.com',
+          password: process.env.TEST_ADMIN_PASSWORD || 'DefaultAdmin2024!SecurePassword',
+          name: '관리자',
+          role: UserRole.ADMIN,
+          plan: 'enterprise' as const,
+          company: '한국인프라연구원(주)'
+        },
+        {
+          email: process.env.TEST_PREMIUM_EMAIL || 'premium@infrastructure-research.com',
+          password: process.env.TEST_PREMIUM_PASSWORD || 'DefaultPremium2024!SecurePassword',
+          name: '프리미엄 사용자',
+          role: UserRole.PREMIUM,
+          plan: 'premium' as const,
+          company: '프리미엄 컨설팅'
+        },
+        {
+          email: process.env.TEST_USER_EMAIL || 'user@infrastructure-research.com',
+          password: process.env.TEST_USER_PASSWORD || 'DefaultUser2024!SecurePassword',
+          name: '일반 사용자',
+          role: UserRole.USER,
+          plan: 'free' as const
         }
-      };
+      ];
       
-      this.users.set(userData.email, user);
+      // 환경변수 로딩 상태 확인
+      const hasCustomCredentials = !!(
+        process.env.TEST_ADMIN_EMAIL && 
+        process.env.TEST_ADMIN_PASSWORD &&
+        !process.env.TEST_ADMIN_PASSWORD.includes('Default')
+      );
+      
+      if (!hasCustomCredentials && process.env.NODE_ENV === 'development') {
+        console.warn('⚠️  [개발 환경] 기본 테스트 계정을 사용 중입니다. .env 파일에서 TEST_*_EMAIL, TEST_*_PASSWORD를 설정하세요.');
+      }
+
+      for (const userData of testUsers) {
+        const passwordHash = await this.hashPassword(userData.password);
+        const user: User & { passwordHash: string } = {
+          id: this.generateUserId(),
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          plan: userData.plan,
+          createdAt: new Date().toISOString(),
+          isActive: true,
+          passwordHash,
+          metadata: {
+            company: userData.company,
+            preferredLanguage: 'ko',
+            timezone: 'Asia/Seoul'
+          }
+        };
+        
+        this.users.set(userData.email, user);
+      }
+      
+      console.log(`✅ Created ${testUsers.length} test users`);
+    } catch (error) {
+      console.error('❌ Failed to create test users:', error);
+      throw error;
     }
-    
-    console.log(`✅ Created ${testUsers.length} test users`);
   }
 
   // 사용자 ID 생성
@@ -371,7 +386,8 @@ export class AuthService {
   // 토큰 검증
   public async verifyToken(token: string): Promise<{ valid: boolean; payload?: AuthTokenPayload; error?: string }> {
     try {
-      const payload = await verify(token, this.jwtSecret) as AuthTokenPayload;
+      const jwtPayload = await verify(token, this.jwtSecret);
+      const payload = jwtPayload as AuthTokenPayload;
       
       // 사용자 존재 및 활성화 확인
       const user = Array.from(this.users.values()).find(u => u.id === payload.sub);

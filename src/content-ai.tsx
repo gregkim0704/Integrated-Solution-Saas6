@@ -25,6 +25,26 @@ interface BlogResult {
   readingTime: number;
 }
 
+interface SocialGraphicResult {
+  imageUrl: string;
+  description: string;
+  dimensions: string;
+}
+
+interface PromoVideoResult {
+  videoUrl: string;
+  duration: number;
+  description: string;
+  thumbnail?: string;
+}
+
+interface PodcastResult {
+  scriptText: string;
+  audioUrl: string;
+  duration: number;
+  description: string;
+}
+
 interface ContentGenerationResult {
   blog: {
     title: string;
@@ -99,7 +119,7 @@ export class AIContentGenerator {
       
     } catch (error) {
       console.error('❌ Content generation failed:', error);
-      throw new Error(`콘텐츠 생성 실패: ${error.message}`);
+      throw new Error(`콘텐츠 생성 실패: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -173,7 +193,7 @@ export class AIContentGenerator {
   /**
    * 소셜 그래픽 이미지 생성 - 실제 AI API 연동
    */
-  async generateSocialGraphic(productDescription: string, analysis: any, options: ContentOptions) {
+  async generateSocialGraphic(productDescription: string, analysis: any, options: ContentOptions): Promise<SocialGraphicResult> {
     console.log('🎨 Generating social graphic with AI API...');
     
     const style = options.imageStyle || 'modern';
@@ -214,7 +234,7 @@ export class AIContentGenerator {
   /**
    * 프로모션 비디오 생성 - 실제 AI API 연동
    */
-  async generatePromoVideo(productDescription: string, analysis: any, options: ContentOptions) {
+  async generatePromoVideo(productDescription: string, analysis: any, options: ContentOptions): Promise<PromoVideoResult> {
     console.log('🎬 Generating promotional video with AI API...');
     
     const duration = options.videoDuration || 30;
@@ -261,7 +281,7 @@ export class AIContentGenerator {
   /**
    * 팟캐스트 콘텐츠 생성 - 실제 AI API 연동
    */
-  async generatePodcastContent(productDescription: string, analysis: any, options: ContentOptions) {
+  async generatePodcastContent(productDescription: string, analysis: any, options: ContentOptions): Promise<PodcastResult> {
     console.log('🎙️ Generating podcast content with AI API...');
     
     const voice = options.voice || 'professional';
@@ -434,14 +454,14 @@ ${analysis.targetAudience.map((audience: string) => `- ${audience}`).join('\n')}
   }
 
   private createImagePrompt(description: string, analysis: any, style: string): string {
-    const styleMap = {
+    const styleMap: Record<string, string> = {
       modern: 'clean, minimalist, modern design with gradient backgrounds',
       minimal: 'simple, white background, clean lines, minimal elements',
       vibrant: 'colorful, energetic, bright colors, dynamic composition',
       professional: 'business-like, corporate, sophisticated, premium look'
     };
 
-    return `Create a ${styleMap[style]} social media graphic featuring ${analysis.category}. 
+    return `Create a ${styleMap[style] || styleMap['professional']} social media graphic featuring ${analysis.category}. 
     Include text overlay with key benefits. Professional marketing design. 1200x630 resolution.`;
   }
 
@@ -500,18 +520,18 @@ Thank you for listening!
   }
 
   private getVoiceRequirements(voice: string, language: string): string {
-    const voiceMap = {
+    const voiceMap: Record<string, string> = {
       professional: '전문적이고 신뢰감 있는',
       friendly: '친근하고 따뜻한',
       energetic: '활기차고 열정적인'
     };
 
-    const langMap = {
+    const langMap: Record<string, string> = {
       ko: '한국어',
       en: 'English'
     };
 
-    return `${voiceMap[voice]} ${langMap[language]} 음성으로 자연스럽고 명확한 발음`;
+    return `${voiceMap[voice] || voiceMap['professional']} ${langMap[language] || langMap['ko']} 음성으로 자연스럽고 명확한 발음`;
   }
 
   // === 실제 AI API 호출 메서드들 ===
@@ -543,7 +563,7 @@ Thank you for listening!
             source: 'real-ai'
           };
         } catch (realError) {
-          console.warn('⚠️ Real AI image generation failed, falling back to simulation:', realError.message);
+          console.warn('⚠️ Real AI image generation failed, falling back to simulation:', realError instanceof Error ? realError.message : String(realError));
           AIPerformanceMonitor.recordCall('imageGeneration', 0, false);
         }
       }
@@ -564,7 +584,7 @@ Thank you for listening!
       };
       
     } catch (error) {
-      throw new Error(`All image generation methods failed: ${error.message}`);
+      throw new Error(`All image generation methods failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -597,7 +617,7 @@ Thank you for listening!
             source: 'real-ai'
           };
         } catch (realError) {
-          console.warn('⚠️ Real AI video generation failed, falling back to simulation:', realError.message);
+          console.warn('⚠️ Real AI video generation failed, falling back to simulation:', realError instanceof Error ? realError.message : String(realError));
           AIPerformanceMonitor.recordCall('videoGeneration', 0, false);
         }
       }
@@ -620,7 +640,7 @@ Thank you for listening!
       };
       
     } catch (error) {
-      throw new Error(`All video generation methods failed: ${error.message}`);
+      throw new Error(`All video generation methods failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -653,7 +673,7 @@ Thank you for listening!
             source: 'real-ai'
           };
         } catch (realError) {
-          console.warn('⚠️ Real AI audio generation failed, falling back to simulation:', realError.message);
+          console.warn('⚠️ Real AI audio generation failed, falling back to simulation:', realError instanceof Error ? realError.message : String(realError));
           AIPerformanceMonitor.recordCall('audioGeneration', 0, false);
         }
       }
@@ -676,21 +696,21 @@ Thank you for listening!
       };
       
     } catch (error) {
-      throw new Error(`All audio generation methods failed: ${error.message}`);
+      throw new Error(`All audio generation methods failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   // === 고급 프롬프트 생성 함수들 ===
 
   private createAdvancedImagePrompt(description: string, analysis: any, style: string): string {
-    const stylePrompts = {
+    const stylePrompts: Record<string, string> = {
       modern: 'sleek, minimalist, contemporary design with clean lines, gradient backgrounds, modern typography, professional lighting',
       minimal: 'ultra-minimalist, white space, simple geometric shapes, subtle shadows, elegant typography, clean aesthetic',
       vibrant: 'bold colors, energetic composition, dynamic shapes, high contrast, eye-catching design, modern gradients',
       professional: 'corporate aesthetic, sophisticated color palette, premium feel, business-appropriate, trustworthy design'
     };
 
-    const categoryVisuals = {
+    const categoryVisuals: Record<string, string> = {
       '웨어러블': 'smartwatch, fitness tracker, modern wearable device, health monitoring',
       '모바일': 'smartphone, mobile app interface, technology, communication device',
       '뷰티': 'cosmetics, skincare products, beauty routine, elegant packaging',
@@ -703,7 +723,7 @@ Thank you for listening!
     const visualElements = categoryVisuals[analysis.category] || 'modern product, technology, innovation';
     
     return `Create a high-quality social media graphic featuring ${visualElements}. 
-    Style: ${stylePrompts[style]}. 
+    Style: ${stylePrompts[style] || stylePrompts['modern']}. 
     Include text overlay highlighting key benefits: ${analysis.keyBenefits.join(', ')}.
     Target audience: ${analysis.targetAudience.join(', ')}.
     Color scheme should be ${style === 'vibrant' ? 'bold and energetic' : 'professional and trustworthy'}.
@@ -831,7 +851,7 @@ Thank you for joining Innovation Tech Review!
   }
 
   private getAdvancedVoiceRequirements(voice: string, language: string): string {
-    const requirements = {
+    const requirements: Record<string, Record<string, string>> = {
       ko: {
         professional: '차분하고 신뢰감 있는 한국어 남성 음성, 명확한 발음, 보통 속도의 전문적인 톤',
         friendly: '따뜻하고 친근한 한국어 음성, 자연스러운 억양, 대화하는 듯한 편안한 톤',
@@ -854,7 +874,7 @@ Thank you for joining Innovation Tech Review!
   }
 
   private generateFallbackImage(category: string, style: string): string {
-    const colors = {
+    const colors: Record<string, string> = {
       modern: '4F46E5/FFFFFF',
       minimal: 'F3F4F6/1F2937', 
       vibrant: 'F59E0B/1F2937',
