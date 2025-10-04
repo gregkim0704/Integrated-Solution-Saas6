@@ -23,6 +23,12 @@ import {
   validateWithCache,
   InputSanitizer 
 } from './utils/input-validator'
+import { 
+  createDatabaseManager, 
+  quickHealthCheck,
+  type DatabaseManagerConfig,
+  type SystemHealthStatus 
+} from './utils/database-manager'
 
 // Cloudflare 바인딩 타입 정의
 type Bindings = {
@@ -371,7 +377,37 @@ ${productDescription}은 단순한 제품을 넘어 라이프스타일 혁신을
 
 const productiveAIService = new ProductiveAIService()
 
+// 데이터베이스 매니저 설정
+const dbManagerConfig: DatabaseManagerConfig = {
+  backup: {
+    enabled: true,
+    schedule: 'daily',
+    retentionDays: 30,
+    compressionEnabled: true,
+    encryptionEnabled: false
+  },
+  queryOptimizer: {
+    slowQueryThreshold: 1000, // 1초
+    enableLogging: true
+  },
+  monitoring: {
+    enableRealTimeStats: true,
+    performanceSnapshotInterval: 60, // 1시간
+    autoOptimization: false // 수동 제어
+  }
+}
+
 const app = new Hono<Env>()
+
+// 데이터베이스 매니저 미들웨어
+app.use('*', async (c, next) => {
+  // 데이터베이스가 있는 경우 매니저 초기화
+  if (c.env?.DB) {
+    const dbManager = createDatabaseManager(c.env.DB, dbManagerConfig)
+    c.set('dbManager', dbManager)
+  }
+  await next()
+})
 
 // Middleware
 app.use('*', securityHeaders)
@@ -1507,6 +1543,291 @@ async function initializeApplication() {
     }
   }
 }
+
+// ========================================
+// 데이터베이스 관리 및 모니터링 API
+// ========================================
+
+// 시스템 상태 체크 (헬스체크)
+app.get('/api/admin/health', async (c) => {
+  try {
+    const env = c.env;
+    
+    if (!env.DB) {
+      return c.json({
+        status: 'error',
+        message: 'Database not available',
+        timestamp: new Date().toISOString()
+      }, 503);
+    }
+
+    // 빠른 헬스체크
+    const isHealthy = await quickHealthCheck(env.DB);
+    
+    if (isHealthy) {
+      return c.json({
+        status: 'healthy',
+        database: 'connected',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      return c.json({
+        status: 'unhealthy',
+        database: 'slow_or_error',
+        timestamp: new Date().toISOString()
+      }, 503);
+    }
+  } catch (error) {
+    return c.json({
+      status: 'error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    }, 500);
+  }
+});
+
+// 상세 시스템 상태 (관리자 전용)
+app.get('/api/admin/system-status', requireAuth(), async (c) => {
+  try {
+    const user = c.get('user');
+    const env = c.env;
+    
+    // 관리자 권한 확인
+    if (user.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    if (!env.DB) {
+      return c.json({ error: 'Database not configured' }, 503);
+    }
+
+    const dbManager = c.get('dbManager');
+    if (!dbManager) {
+      return c.json({ error: 'Database manager not available' }, 503);
+    }
+
+    // 종합 시스템 상태 조회
+    const systemHealth = await dbManager.getSystemHealth();
+    
+    return c.json({
+      success: true,
+      data: systemHealth,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ System status check failed:', error);
+    return c.json({
+      error: 'Failed to check system status',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 성능 대시보드 데이터
+app.get('/api/admin/performance-dashboard', requireAuth(), async (c) => {
+  try {
+    const user = c.get('user');
+    const env = c.env;
+    
+    if (user.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    const dbManager = c.get('dbManager');
+    if (!dbManager) {
+      return c.json({ error: 'Database manager not available' }, 503);
+    }
+
+    const dashboard = await dbManager.getPerformanceDashboard();
+    
+    return c.json({
+      success: true,
+      data: dashboard,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Performance dashboard failed:', error);
+    return c.json({
+      error: 'Failed to get performance dashboard',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 데이터베이스 최적화 실행
+app.post('/api/admin/optimize-database', requireAuth(), async (c) => {
+  try {
+    const user = c.get('user');
+    const env = c.env;
+    
+    if (user.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    const dbManager = c.get('dbManager');
+    if (!dbManager) {
+      return c.json({ error: 'Database manager not available' }, 503);
+    }
+
+    console.log('🔧 Starting comprehensive database optimization...');
+    const results = await dbManager.performComprehensiveOptimization();
+    
+    return c.json({
+      success: true,
+      data: results,
+      message: 'Database optimization completed successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Database optimization failed:', error);
+    return c.json({
+      error: 'Database optimization failed',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 수동 백업 생성
+app.post('/api/admin/create-backup', requireAuth(), async (c) => {
+  try {
+    const user = c.get('user');
+    const env = c.env;
+    
+    if (user.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    const dbManager = c.get('dbManager');
+    if (!dbManager) {
+      return c.json({ error: 'Database manager not available' }, 503);
+    }
+
+    console.log('💾 Creating manual database backup...');
+    const backup = await dbManager.backupManager.createFullBackup();
+    
+    return c.json({
+      success: true,
+      data: {
+        backupId: backup.id,
+        timestamp: backup.timestamp,
+        size: backup.size,
+        recordCount: backup.recordCount,
+        tables: backup.tables
+      },
+      message: 'Backup created successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Manual backup creation failed:', error);
+    return c.json({
+      error: 'Backup creation failed',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 정기 유지보수 실행
+app.post('/api/admin/maintenance', requireAuth(), async (c) => {
+  try {
+    const user = c.get('user');
+    const env = c.env;
+    
+    if (user.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    const dbManager = c.get('dbManager');
+    if (!dbManager) {
+      return c.json({ error: 'Database manager not available' }, 503);
+    }
+
+    console.log('🔄 Starting routine maintenance...');
+    await dbManager.performRoutineMaintenance();
+    
+    return c.json({
+      success: true,
+      message: 'Routine maintenance completed successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Maintenance failed:', error);
+    return c.json({
+      error: 'Maintenance failed',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 느린 쿼리 보고서
+app.get('/api/admin/slow-queries', requireAuth(), async (c) => {
+  try {
+    const user = c.get('user');
+    const env = c.env;
+    
+    if (user.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    const dbManager = c.get('dbManager');
+    if (!dbManager) {
+      return c.json({ error: 'Database manager not available' }, 503);
+    }
+
+    const days = parseInt(c.req.query('days') || '7');
+    const report = await dbManager.queryOptimizer.generateSlowQueryReport(days);
+    
+    return c.json({
+      success: true,
+      data: {
+        reportPeriod: `${days} days`,
+        slowQueries: report,
+        totalSlowQueries: report.length
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Slow query report failed:', error);
+    return c.json({
+      error: 'Failed to generate slow query report',
+      details: error.message
+    }, 500);
+  }
+});
+
+// 백업 목록 조회
+app.get('/api/admin/backups', requireAuth(), async (c) => {
+  try {
+    const user = c.get('user');
+    const env = c.env;
+    
+    if (user.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    if (!env.DB) {
+      return c.json({ error: 'Database not available' }, 503);
+    }
+
+    const backups = await env.DB.prepare(`
+      SELECT id, timestamp, backup_type, size, record_count, status, created_by
+      FROM backup_metadata 
+      ORDER BY timestamp DESC 
+      LIMIT 20
+    `).all();
+    
+    return c.json({
+      success: true,
+      data: backups.results || [],
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Backup list retrieval failed:', error);
+    return c.json({
+      error: 'Failed to retrieve backup list',
+      details: error.message
+    }, 500);
+  }
+});
 
 // 애플리케이션 초기화 실행 (비동기)
 initializeApplication().catch(error => {
