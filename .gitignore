@@ -11,21 +11,87 @@ pids
 build
 dist
 
-# dotenv environment variables file
+# Environment variables (NEVER commit these)
 .env
+.env.local
+.env.development
+.env.staging
+.env.production
 .dev.vars
+.vars
+
+# API Keys and Secrets (NEVER commit these)
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.json
+config.json
+credentials.json
 
 # PM2
 .pm2/
 pids/
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Wrangler
+# Wrangler and Cloudflare
 .wrangler/
+wrangler.toml.backup
 
-# Backup files
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup and temporary files
 *.backup
 *.bak
+*.tmp
+*.temp
 *.tar.gz
 *.zip
+*.rar
+
+# Test coverage and reports
+coverage/
+.nyc_output/
+test-results/
+.coverage
+
+# Security and audit files
+audit.log
+security-scan.json
+
+# Local development certificates
+*.crt
+*.pem
+localhost.key
+localhost.crt
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# AI Drive temporary files
+/mnt/aidrive/temp/
+/mnt/aidrive/.temp/
