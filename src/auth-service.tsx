@@ -81,40 +81,53 @@ export class AuthService {
   private readonly LOCKOUT_DURATION = 15 * 60 * 1000; // 15분
 
   constructor(jwtSecret?: string) {
-    this.jwtSecret = jwtSecret || 'your-super-secret-jwt-key-change-in-production';
+    // 환경변수에서 JWT 시크릿 로드
+    this.jwtSecret = jwtSecret || process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+    
+    // 프로덕션에서 기본값 사용 시 경고
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-super-secret-jwt-key-change-in-production') {
+      console.warn('⚠️  [보안 경고] JWT_SECRET이 기본값을 사용 중입니다. .env 파일에서 강력한 비밀키를 설정하세요.');
+    }
+    
     console.log('🔐 AuthService initialized');
     
     // 테스트 사용자 생성
     this.createTestUsers();
   }
 
-  // 테스트 사용자 생성
+  // 테스트 사용자 생성 (환경변수 기반)
   private async createTestUsers() {
+    // 환경변수에서 안전하게 테스트 계정 정보 로드
     const testUsers = [
       {
-        email: 'admin@infrastructure-research.com',
-        password: 'admin123!',
+        email: process.env.TEST_ADMIN_EMAIL || 'admin@infrastructure-research.com',
+        password: process.env.TEST_ADMIN_PASSWORD || 'change-this-password',
         name: '관리자',
         role: UserRole.ADMIN,
         plan: 'enterprise' as const,
         company: '한국인프라연구원(주)'
       },
       {
-        email: 'premium@example.com',
-        password: 'premium123!',
+        email: process.env.TEST_PREMIUM_EMAIL || 'premium@example.com',
+        password: process.env.TEST_PREMIUM_PASSWORD || 'change-this-password',
         name: '프리미엄 사용자',
         role: UserRole.PREMIUM,
         plan: 'premium' as const,
         company: '프리미엄 컨설팅'
       },
       {
-        email: 'user@example.com',
-        password: 'user123!',
+        email: process.env.TEST_USER_EMAIL || 'user@example.com',
+        password: process.env.TEST_USER_PASSWORD || 'change-this-password',
         name: '일반 사용자',
         role: UserRole.USER,
         plan: 'free' as const
       }
     ];
+
+    // 개발 환경에서만 기본값 경고
+    if (!process.env.TEST_ADMIN_PASSWORD || process.env.TEST_ADMIN_PASSWORD === 'change-this-password') {
+      console.warn('⚠️  [보안 경고] 테스트 계정이 기본값을 사용 중입니다. .env 파일에서 TEST_*_PASSWORD를 설정하세요.');
+    }
 
     for (const userData of testUsers) {
       const passwordHash = await this.hashPassword(userData.password);

@@ -224,14 +224,24 @@ npm run build
 pm2 start ecosystem.config.cjs
 ```
 
-### 테스트 계정
-```
-관리자: admin@test.com / admin123!@#
-프리미엄: premium@test.com / premium123!@#  
-일반 사용자: user@test.com / user123!@#
+### 테스트 계정 설정
+```bash
+# 환경변수로 안전하게 관리 (.env 파일에 설정)
+TEST_ADMIN_EMAIL=your-admin@example.com
+TEST_ADMIN_PASSWORD=your-secure-password
+
+TEST_PREMIUM_EMAIL=your-premium@example.com  
+TEST_PREMIUM_PASSWORD=your-secure-password
+
+TEST_USER_EMAIL=your-user@example.com
+TEST_USER_PASSWORD=your-secure-password
 ```
 
-> **⚠️ 보안 주의**: 위 테스트 계정은 개발용이며, 프로덕션 배포 시 제거 예정입니다.
+> **🔒 보안**: 테스트 계정은 환경변수로 관리하며, 실제 계정 정보는 .env 파일에서 설정하세요.
+> **📋 가이드**: 
+> 1. `.env.example`을 `.env`로 복사
+> 2. 위 환경변수들을 안전한 값으로 설정
+> 3. `.env` 파일은 절대 Git에 커밋하지 마세요 (.gitignore에 포함됨)
 
 ---
 
